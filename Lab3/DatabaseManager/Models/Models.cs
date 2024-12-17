@@ -17,4 +17,6 @@ public record Article
     public required Guid ArticleId { get; set; }
     public string Title { get; set; } = "";
     public string Description { get; set; } = "Empty description.";
+
+    public required DateTime CreatedAt { get; set; }
 }

@@ -6,8 +6,6 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-using var context = new AppDbContext();
-context.Database.EnsureCreated();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -24,41 +22,21 @@ app.UseHttpsRedirection();
 
 var publisher = new EventPublisher(app.Configuration);
 
-// TODO: Remove test code
-
-var article1Id = Guid.NewGuid();
-
-var @event = new Event
-{
-    Id = Guid.NewGuid(),
-    ArticleId = article1Id,
-    Action = "create",
-    Value = "Article1Title",
-    CreatedAt = DateTime.UtcNow
-};
-
-publisher.PublishEvent(JsonSerializer.Serialize(@event));
-
-var @event2 = new Event
-{
-    Id = Guid.NewGuid(),
-    ArticleId = Guid.NewGuid(),
-    Action = "create",
-    Value = "Article2Title",
-    CreatedAt = DateTime.UtcNow
-};
-
-publisher.PublishEvent(JsonSerializer.Serialize(@event2));
-
 app.MapGet("/articles", () =>
 {
-    return JsonSerializer.Serialize(context.State.ToList());
+    using var context = new AppDbContext();
+
+    var articles = context.State.ToList();
+    articles.SortBy(a => a.CreatedAt);
+
+    return JsonSerializer.Serialize(articles);
 })
 .WithName("GetArticles")
 .WithOpenApi();
 
 app.MapGet("/events", () =>
 {
+    using var context = new AppDbContext();
     var allEvents = context.Events.ToList();
     allEvents.SortBy(a => a.CreatedAt);
 
@@ -67,6 +45,58 @@ app.MapGet("/events", () =>
 .WithName("GetEvents")
 .WithOpenApi();
 
-// TODO: add endpoints for crud
+app.MapGet("/create", (string title = "EmptyTitle") =>
+{
+    var @event = new Event
+    {
+        Id = Guid.NewGuid(),
+        ArticleId = Guid.NewGuid(),
+        Action = "create",
+        Value = title,
+        CreatedAt = DateTime.UtcNow
+    };
+
+    publisher.PublishEvent(JsonSerializer.Serialize(@event));
+
+    return $"Added creation event: {@event}";
+})
+.WithName("CreateArticle")
+.WithOpenApi();
+
+app.MapGet("/update", (Guid ArticleId, string description = "EmptyTitle") =>
+{
+    var @event = new Event
+    {
+        Id = Guid.NewGuid(),
+        ArticleId = ArticleId,
+        Action = "update",
+        Value = description,
+        CreatedAt = DateTime.UtcNow
+    };
+
+    publisher.PublishEvent(JsonSerializer.Serialize(@event));
+
+    return $"Added update event: {@event}";
+})
+.WithName("UpdateArticleDescription")
+.WithOpenApi();
+
+app.MapGet("/clear", () =>
+{
+    var @event = new Event
+    {
+        Id = Guid.NewGuid(),
+        ArticleId = Guid.Empty,
+        Action = "clear",
+        Value = "",
+        CreatedAt = DateTime.UtcNow
+    };
+
+    publisher.PublishEvent(JsonSerializer.Serialize(@event));
+
+    return $"Added clear event: {@event}";
+})
+.WithName("ClearAllArticles")
+.WithOpenApi();
 
 app.Run();

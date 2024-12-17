@@ -31,6 +31,7 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.ArticleId);
             entity.Property(e => e.Title).IsRequired();
             entity.Property(e => e.Description).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
         });
     }
 }
@@ -44,27 +45,44 @@ public class Articles(AppDbContext context)
         switch (@event.Action)
         {
             case "create":
-                CreateArticle(@event.ArticleId, @event.Value);
+                CreateArticle(@event.ArticleId, @event.Value, @event.CreatedAt);
                 break;
             case "update":
                 EditArticle(@event.ArticleId, @event.Value);
+                break;
+            case "clear":
+                ClearArticles();
                 break;
         }
     }
 
     public List<Article> GetArticles() => [.. context.State];
 
-    private void CreateArticle(Guid articleId, string value)
+    private void CreateArticle(Guid articleId, string value, DateTime CreatedAt)
     {
-        context.State.Add(new Article { ArticleId = articleId, Title = value });
+        context.State.Add(new Article { ArticleId = articleId, Title = value, CreatedAt = CreatedAt });
         context.SaveChanges();
     }
 
     private void EditArticle(Guid articleId, string value)
     {
-        var article = new Article { ArticleId = articleId, Description = value };
-        context.Attach(article);
-        context.Entry(article).Property(article => article.Description).IsModified = true;
+        try
+        {
+            var article = context.State.Single(a => a.ArticleId == articleId);
+            article.Description = value;
+            context.SaveChanges();
+
+            Console.WriteLine($"Updated {articleId} with description {value}");
+        }
+        catch (InvalidOperationException)
+        {
+            Console.WriteLine("Error: Article not found!");
+        }
+    }
+
+    public void ClearArticles()
+    {
+        context.State.ExecuteDelete();
         context.SaveChanges();
     }
 }

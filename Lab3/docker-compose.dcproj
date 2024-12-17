@@ -7,7 +7,7 @@
     <ProjectGuid>df8c3b23-22c1-4172-bac3-e7c20dcecef5</ProjectGuid>
     <DockerLaunchAction>LaunchBrowser</DockerLaunchAction>
     <DockerServiceUrl>{Scheme}://localhost:{ServicePort}/swagger</DockerServiceUrl>
-    <DockerServiceName>consumer</DockerServiceName>
+    <DockerServiceName>EventGenerator</DockerServiceName>
   </PropertyGroup>
   <ItemGroup>
     <None Include="docker-compose.override.yml">
