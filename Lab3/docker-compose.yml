@@ -1,0 +1,54 @@
+services:
+  consumer:
+    container_name: consumer
+    image: ${DOCKER_REGISTRY-}consumer
+    build:
+      context: .
+      dockerfile: Consumer/Dockerfile
+    environment:
+        - "RMQ_HOST=rabbitmq"
+        - "RMQ_PORT=5672"
+        - "RMQ_USERNAME=rabbitmquser"
+        - "RMQ_PASSWORD=rabbitmqpassword"
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbitmquser
+      RABBITMQ_DEFAULT_PASS: rabbitmqpassword
+
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgresuser
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: events
+    ports:
+      - "5432:5432"
+
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   container_name: pgadmin
+  #   ports:
+  #     - "8888:80"
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: yegorgribenko@gmail.com
+  #     PGADMIN_DEFAULT_PASSWORD: pgadminpassword
+
+  EventGenerator:
+    container_name: event-generator
+    image: ${DOCKER_REGISTRY-}event-generator
+    build:
+      context: .
+      dockerfile: EventGenerator/Dockerfile
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      - "rabbitmq"
+      - "postgres"
